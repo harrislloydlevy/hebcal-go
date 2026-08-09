@@ -354,16 +354,19 @@ func dailyZemanim(date hdate.HDate, opts *CalOptions) []event.CalEvent {
 	return events
 }
 
-// URL returns the page for the observance this time belongs to, or "" when
-// there is none.
+// URL returns the Chanukah page for Chanukah candle lighting, and "" for
+// every other timed event.
 //
 // The override matters because TimedEvent embeds event.HolidayEvent and would
 // otherwise inherit its URL(), producing links like /holidays/havdalah-2026
-// for a description that is not a holiday name. Ordinary Shabbat candle
-// lighting and Havdalah have no linked event and so no URL, while Chanukah
-// candle lighting links to the Chanukah page.
+// for a description that is not a holiday name.
+//
+// Only Chanukah is treated as linkable. Candle lighting before Pesach also
+// carries a LinkedEvent, but a clock time is not itself an observance with a
+// page, and following every link would attach a holiday URL to each Friday
+// evening in the calendar.
 func (ev TimedEvent) URL() string {
-	if ev.LinkedEvent == nil {
+	if ev.Flags&event.CHANUKAH_CANDLES == 0 || ev.LinkedEvent == nil {
 		return ""
 	}
 	return event.URL(ev.LinkedEvent)
