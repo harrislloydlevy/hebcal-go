@@ -237,4 +237,3 @@ func TestParshaEvent_Extra(t *testing.T) {
 	assert.Equal(t, "Noach", ev.Basename())
 	assert.Equal(t, []string{"parashat"}, ev.GetCategories())
 }
-

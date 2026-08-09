@@ -14,12 +14,12 @@ type mockEvent struct {
 	desc string
 }
 
-func (m mockEvent) GetDate() hdate.HDate        { return m.date }
-func (m mockEvent) Render(locale string) string { return m.desc }
+func (m mockEvent) GetDate() hdate.HDate         { return m.date }
+func (m mockEvent) Render(locale string) string  { return m.desc }
 func (m mockEvent) GetFlags() event.HolidayFlags { return event.DAILY_LEARNING }
-func (m mockEvent) GetEmoji() string            { return "" }
-func (m mockEvent) Basename() string            { return m.desc }
-func (m mockEvent) GetCategories() []string     { return []string{"learning"} }
+func (m mockEvent) GetEmoji() string             { return "" }
+func (m mockEvent) Basename() string             { return m.desc }
+func (m mockEvent) GetCategories() []string      { return []string{"learning"} }
 
 func TestDailyLearningRegistry(t *testing.T) {
 	// Backup and reset calendars map
