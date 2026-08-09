@@ -33,9 +33,10 @@ func URL(ev CalEvent) string {
 // slugOverrides maps a generated slug onto the spelling hebcal.com actually
 // uses, where the two differ. The website predates these tables and its URLs
 // are permanent, so the event descriptions cannot simply be renamed.
+// Note that only Rosh Chodesh is affected: the fast keeps the two-m spelling
+// as tzom-tammuz.
 var slugOverrides = map[string]string{
 	"rosh-chodesh-tammuz": "rosh-chodesh-tamuz",
-	"tzom-tammuz":         "tzom-tamuz",
 }
 
 // urlFriendly converts a holiday or parsha name into the slug used in
@@ -87,9 +88,15 @@ func (ev HolidayEvent) URL() string {
 		slug = alt
 	}
 	// In a leap year the two Adars share one description, but the website
-	// files them under separate pages.
+	// files them under separate pages. Rosh Chodesh can span two days, and on
+	// the first of them the date is the 30th of the *previous* month, so the
+	// month has to be advanced before deciding which Adar this is.
 	if slug == "rosh-chodesh-adar" {
-		switch ev.Date.Month() {
+		m := ev.Date.Month()
+		if ev.Date.Day() == 30 {
+			m++
+		}
+		switch m {
 		case hdate.Adar1:
 			slug = "rosh-chodesh-adar-i"
 		case hdate.Adar2:
