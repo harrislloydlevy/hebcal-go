@@ -2,6 +2,8 @@ package event
 
 import (
 	"fmt"
+
+	"github.com/hebcal/hdate"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +28,14 @@ func URL(ev CalEvent) string {
 		return u.URL()
 	}
 	return ""
+}
+
+// slugOverrides maps a generated slug onto the spelling hebcal.com actually
+// uses, where the two differ. The website predates these tables and its URLs
+// are permanent, so the event descriptions cannot simply be renamed.
+var slugOverrides = map[string]string{
+	"rosh-chodesh-tammuz": "rosh-chodesh-tamuz",
+	"tzom-tammuz":         "tzom-tamuz",
 }
 
 // urlFriendly converts a holiday or parsha name into the slug used in
@@ -72,7 +82,21 @@ func (ev HolidayEvent) URL() string {
 	default:
 		suffix = strconv.Itoa(gy)
 	}
-	url := "https://www.hebcal.com/holidays/" + urlFriendly(ev.Basename()) + "-" + suffix
+	slug := urlFriendly(ev.Basename())
+	if alt, ok := slugOverrides[slug]; ok {
+		slug = alt
+	}
+	// In a leap year the two Adars share one description, but the website
+	// files them under separate pages.
+	if slug == "rosh-chodesh-adar" {
+		switch ev.Date.Month() {
+		case hdate.Adar1:
+			slug = "rosh-chodesh-adar-i"
+		case hdate.Adar2:
+			slug = "rosh-chodesh-adar-ii"
+		}
+	}
+	url := "https://www.hebcal.com/holidays/" + slug + "-" + suffix
 	if ev.Flags&IL_ONLY != 0 {
 		url += "?i=on"
 	}

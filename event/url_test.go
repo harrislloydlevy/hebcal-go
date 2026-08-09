@@ -1,6 +1,7 @@
 package event
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hebcal/hdate"
@@ -8,9 +9,9 @@ import (
 
 func TestHolidayEventURL(t *testing.T) {
 	tests := []struct {
-		name  string
-		ev    HolidayEvent
-		want  string
+		name string
+		ev   HolidayEvent
+		want string
 	}{
 		{
 			name: "ordinary holiday uses the Gregorian year",
@@ -69,5 +70,29 @@ func TestURLHelperReturnsEmptyForEventsWithoutPages(t *testing.T) {
 	ev := NewHebrewDateEvent(hdate.New(5786, hdate.Nisan, 15))
 	if URL(ev) == "" {
 		t.Error("hebrew date event should have a converter URL")
+	}
+}
+
+// In a leap year both Adars share the description "Rosh Chodesh Adar", but
+// hebcal.com files them under separate pages.
+func TestLeapYearAdarURLsAreDistinct(t *testing.T) {
+	a1 := HolidayEvent{Date: hdate.New(5787, hdate.Adar1, 1), Desc: "Rosh Chodesh Adar", Flags: ROSH_CHODESH}
+	a2 := HolidayEvent{Date: hdate.New(5787, hdate.Adar2, 1), Desc: "Rosh Chodesh Adar", Flags: ROSH_CHODESH}
+	if !strings.Contains(a1.URL(), "rosh-chodesh-adar-i-") {
+		t.Errorf("Adar I URL = %q", a1.URL())
+	}
+	if !strings.Contains(a2.URL(), "rosh-chodesh-adar-ii-") {
+		t.Errorf("Adar II URL = %q", a2.URL())
+	}
+	if a1.URL() == a2.URL() {
+		t.Error("the two Adars must not share a URL")
+	}
+}
+
+// hebcal.com spells this month with one m in its URLs.
+func TestTammuzSlugMatchesWebsite(t *testing.T) {
+	ev := HolidayEvent{Date: hdate.New(5787, hdate.Tamuz, 1), Desc: "Rosh Chodesh Tammuz", Flags: ROSH_CHODESH}
+	if !strings.Contains(ev.URL(), "rosh-chodesh-tamuz-") {
+		t.Errorf("URL = %q, want rosh-chodesh-tamuz", ev.URL())
 	}
 }
