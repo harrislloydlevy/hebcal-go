@@ -353,3 +353,14 @@ func dailyZemanim(date hdate.HDate, opts *CalOptions) []event.CalEvent {
 	}
 	return events
 }
+
+// URL returns the empty string: candle-lighting, Havdalah and fast start/end
+// times have no page of their own on hebcal.com.
+//
+// This override matters because TimedEvent embeds event.HolidayEvent, and
+// would otherwise inherit its URL() and produce links like
+// /holidays/havdalah-2026 for a description that is not a holiday name.
+// Callers wanting the observance a time belongs to should follow LinkedEvent.
+func (ev TimedEvent) URL() string {
+	return ""
+}
