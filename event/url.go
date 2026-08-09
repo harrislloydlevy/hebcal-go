@@ -70,6 +70,10 @@ func (ev HolidayEvent) URL() string {
 	if !gregYearInRange(gy) {
 		return ""
 	}
+	// Yom Kippur Katan has no page on the website.
+	if strings.HasPrefix(ev.Desc, "Yom Kippur Katan") {
+		return ""
+	}
 	var suffix string
 	switch {
 	case ev.Desc == "Asara B'Tevet":
@@ -91,7 +95,10 @@ func (ev HolidayEvent) URL() string {
 	// files them under separate pages. Rosh Chodesh can span two days, and on
 	// the first of them the date is the 30th of the *previous* month, so the
 	// month has to be advanced before deciding which Adar this is.
-	if slug == "rosh-chodesh-adar" {
+	//
+	// A common year has a single Adar and keeps the undecorated slug, even
+	// though hdate numbers that month Adar1.
+	if slug == "rosh-chodesh-adar" && hdate.IsLeapYear(ev.Date.Year()) {
 		m := ev.Date.Month()
 		if ev.Date.Day() == 30 {
 			m++

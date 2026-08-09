@@ -7,5 +7,8 @@ import (
 )
 
 func TestGetAllHolidaysForYear(t *testing.T) {
-	assert.Equal(t, 127, len(getAllHolidaysForYear(5783)))
+	// The raw table is pre-filter, so holidays observed on both schedules are
+	// listed twice, once CHUL_ONLY and once IL_ONLY. Erev Sukkot and Erev
+	// Pesach are among them.
+	assert.Equal(t, 129, len(getAllHolidaysForYear(5783)))
 }

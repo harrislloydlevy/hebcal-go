@@ -3,8 +3,10 @@ package event
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hebcal/hdate"
+	"github.com/hebcal/hebcal-go/sedra"
 )
 
 func TestHolidayEventURL(t *testing.T) {
@@ -19,9 +21,19 @@ func TestHolidayEventURL(t *testing.T) {
 			want: "https://www.hebcal.com/holidays/sukkot-2026",
 		},
 		{
+			name: "apostrophes are dropped from the slug",
+			ev:   HolidayEvent{Date: hdate.New(5786, hdate.Iyyar, 5), Desc: "Yom HaAtzma'ut", Flags: MODERN_HOLIDAY},
+			want: "https://www.hebcal.com/holidays/yom-haatzmaut-2026",
+		},
+		{
 			name: "Israel-only observance carries i=on",
 			ev:   HolidayEvent{Date: hdate.New(5786, hdate.Iyyar, 5), Desc: "Yom HaAtzma'ut", Flags: MODERN_HOLIDAY | IL_ONLY},
 			want: "https://www.hebcal.com/holidays/yom-haatzmaut-2026?i=on",
+		},
+		{
+			name: "Yom Kippur Katan has no page",
+			ev:   HolidayEvent{Date: hdate.New(5780, hdate.Shvat, 29), Desc: "Yom Kippur Katan Adar", Flags: MINOR_FAST},
+			want: "",
 		},
 	}
 	for _, tt := range tests {
@@ -37,62 +49,142 @@ func TestHolidayEventURL(t *testing.T) {
 // disambiguated with a full date rather than just the year.
 func TestAsaraBTevetURLUsesFullDate(t *testing.T) {
 	ev := HolidayEvent{Date: hdate.New(5787, hdate.Tevet, 10), Desc: "Asara B'Tevet", Flags: MINOR_FAST}
-	got := ev.URL()
 	want := "https://www.hebcal.com/holidays/asara-btevet-20261220"
-	if got != want {
+	if got := ev.URL(); got != want {
 		t.Errorf("URL() = %q, want %q", got, want)
 	}
 }
 
 // Chanukah can start in December and end in January; the whole festival is
-// filed under the year it began.
+// filed under the year it began, so the January days point back a year.
 func TestChanukahJanuaryDaysUsePreviousYear(t *testing.T) {
-	ev := HolidayEvent{Date: hdate.New(5787, hdate.Tevet, 2), Desc: "Chanukah: 8th Day", Flags: MINOR_HOLIDAY}
-	gy, gm, _ := ev.Date.ProlepticGreg()
-	got := ev.URL()
-	t.Logf("greg %d-%02d -> %s", gy, int(gm), got)
-	if gm == 1 && got != "https://www.hebcal.com/holidays/chanukah-"+itoa(gy-1) {
-		t.Errorf("January Chanukah day should use the previous year, got %q", got)
+	// 5784: Chanukah runs 7 Dec 2023 - 15 Dec 2023, entirely in December.
+	dec := HolidayEvent{Date: hdate.New(5784, hdate.Kislev, 25), Desc: "Chanukah: 1 Candle", Flags: MINOR_HOLIDAY}
+	if got, want := dec.URL(), "https://www.hebcal.com/holidays/chanukah-2023"; got != want {
+		t.Errorf("December day: URL() = %q, want %q", got, want)
+	}
+	// 5785: the last days fall in January 2025 but still belong to 2024.
+	jan := HolidayEvent{Date: hdate.New(5785, hdate.Tevet, 2), Desc: "Chanukah: 8th Day", Flags: MINOR_HOLIDAY}
+	gy, gm, _ := jan.Date.ProlepticGreg()
+	if gm != 1 {
+		t.Fatalf("test precondition: expected a January date, got %d-%02d", gy, int(gm))
+	}
+	if got, want := jan.URL(), "https://www.hebcal.com/holidays/chanukah-2024"; got != want {
+		t.Errorf("January day: URL() = %q, want %q", got, want)
 	}
 }
 
-func itoa(i int) string {
-	if i < 0 {
-		return "-" + itoa(-i)
-	}
-	if i < 10 {
-		return string(rune('0' + i))
-	}
-	return itoa(i/10) + string(rune('0'+i%10))
-}
-
-func TestURLHelperReturnsEmptyForEventsWithoutPages(t *testing.T) {
-	ev := NewHebrewDateEvent(hdate.New(5786, hdate.Nisan, 15))
-	if URL(ev) == "" {
-		t.Error("hebrew date event should have a converter URL")
-	}
-}
-
-// In a leap year both Adars share the description "Rosh Chodesh Adar", but
-// hebcal.com files them under separate pages.
+// In a leap year both Adars carry the description "Rosh Chodesh Adar", but
+// hebcal.com files them under separate pages. A two-day Rosh Chodesh starts on
+// the 30th of the preceding month, which must not be mistaken for that month.
 func TestLeapYearAdarURLsAreDistinct(t *testing.T) {
-	a1 := HolidayEvent{Date: hdate.New(5787, hdate.Adar1, 1), Desc: "Rosh Chodesh Adar", Flags: ROSH_CHODESH}
-	a2 := HolidayEvent{Date: hdate.New(5787, hdate.Adar2, 1), Desc: "Rosh Chodesh Adar", Flags: ROSH_CHODESH}
-	if !strings.Contains(a1.URL(), "rosh-chodesh-adar-i-") {
-		t.Errorf("Adar I URL = %q", a1.URL())
+	if !hdate.IsLeapYear(5787) {
+		t.Fatal("test precondition: 5787 should be a leap year")
 	}
-	if !strings.Contains(a2.URL(), "rosh-chodesh-adar-ii-") {
-		t.Errorf("Adar II URL = %q", a2.URL())
+	cases := []struct {
+		name string
+		ev   HolidayEvent
+		want string
+	}{
+		{"Adar I, first day (30 Sh'vat)", HolidayEvent{Date: hdate.New(5787, hdate.Shvat, 30)}, "rosh-chodesh-adar-i"},
+		{"Adar I, second day", HolidayEvent{Date: hdate.New(5787, hdate.Adar1, 1)}, "rosh-chodesh-adar-i"},
+		{"Adar II, first day (30 Adar I)", HolidayEvent{Date: hdate.New(5787, hdate.Adar1, 30)}, "rosh-chodesh-adar-ii"},
+		{"Adar II, second day", HolidayEvent{Date: hdate.New(5787, hdate.Adar2, 1)}, "rosh-chodesh-adar-ii"},
 	}
-	if a1.URL() == a2.URL() {
-		t.Error("the two Adars must not share a URL")
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			c.ev.Desc = "Rosh Chodesh Adar"
+			c.ev.Flags = ROSH_CHODESH
+			if got := c.ev.URL(); !strings.Contains(got, "/"+c.want+"-") {
+				t.Errorf("URL() = %q, want it to contain %q", got, c.want)
+			}
+		})
 	}
 }
 
-// hebcal.com spells this month with one m in its URLs.
-func TestTammuzSlugMatchesWebsite(t *testing.T) {
-	ev := HolidayEvent{Date: hdate.New(5787, hdate.Tamuz, 1), Desc: "Rosh Chodesh Tammuz", Flags: ROSH_CHODESH}
-	if !strings.Contains(ev.URL(), "rosh-chodesh-tamuz-") {
-		t.Errorf("URL = %q, want rosh-chodesh-tamuz", ev.URL())
+// A common year has a single Adar and keeps the undecorated slug, even though
+// hdate numbers that month Adar1.
+func TestCommonYearAdarHasNoNumeral(t *testing.T) {
+	if hdate.IsLeapYear(5780) {
+		t.Fatal("test precondition: 5780 should be a common year")
+	}
+	ev := HolidayEvent{Date: hdate.New(5780, hdate.Adar1, 1), Desc: "Rosh Chodesh Adar", Flags: ROSH_CHODESH}
+	if got, want := ev.URL(), "https://www.hebcal.com/holidays/rosh-chodesh-adar-2020"; got != want {
+		t.Errorf("URL() = %q, want %q", got, want)
+	}
+}
+
+// hebcal.com spells this month with one m in Rosh Chodesh paths, but the fast
+// keeps the two-m spelling.
+func TestTammuzSlugs(t *testing.T) {
+	rc := HolidayEvent{Date: hdate.New(5787, hdate.Tamuz, 1), Desc: "Rosh Chodesh Tammuz", Flags: ROSH_CHODESH}
+	if !strings.Contains(rc.URL(), "rosh-chodesh-tamuz-") {
+		t.Errorf("Rosh Chodesh: URL() = %q, want rosh-chodesh-tamuz", rc.URL())
+	}
+	fast := HolidayEvent{Date: hdate.New(5787, hdate.Tamuz, 17), Desc: "Tzom Tammuz", Flags: MINOR_FAST}
+	if !strings.Contains(fast.URL(), "tzom-tammuz-") {
+		t.Errorf("fast: URL() = %q, want tzom-tammuz", fast.URL())
+	}
+}
+
+// Years the website does not cover produce no link rather than one that 404s.
+func TestOutOfRangeYearsHaveNoURL(t *testing.T) {
+	for _, hy := range []int{3000, 8000} {
+		ev := HolidayEvent{Date: hdate.New(hy, hdate.Tishrei, 15), Desc: "Sukkot I", Flags: CHAG}
+		gy, _, _ := ev.Date.ProlepticGreg()
+		if gy >= 100 && gy <= 2999 {
+			continue // still in range; nothing to assert
+		}
+		if got := ev.URL(); got != "" {
+			t.Errorf("Hebrew year %d (Gregorian %d): URL() = %q, want empty", hy, gy, got)
+		}
+	}
+}
+
+// parshaFor builds a Parsha value from portion names, for URL tests that do
+// not need the real reading schedule.
+func parshaFor(names ...string) sedra.Parsha {
+	return sedra.Parsha{Name: names}
+}
+
+func TestParshaEventURL(t *testing.T) {
+	// 8 Aug 2026 is a Saturday; Parashat Eikev is read that day.
+	hd := hdate.FromGregorian(2026, time.August, 8)
+	ev := NewParshaEvent(hd, parshaFor("Eikev"), false)
+	want := "https://www.hebcal.com/sedrot/eikev-20260808"
+	if got := URL(ev); got != want {
+		t.Errorf("URL() = %q, want %q", got, want)
+	}
+	il := NewParshaEvent(hd, parshaFor("Eikev"), true)
+	if got := URL(il); got != want+"?i=on" {
+		t.Errorf("Israel URL() = %q, want %q", got, want+"?i=on")
+	}
+}
+
+// A doubled portion keeps both names in the slug.
+func TestDoubledParshaURL(t *testing.T) {
+	hd := hdate.FromGregorian(2026, time.March, 14)
+	ev := NewParshaEvent(hd, parshaFor("Vayakhel", "Pekudei"), false)
+	if got := URL(ev); !strings.Contains(got, "/sedrot/vayakhel-pekudei-") {
+		t.Errorf("URL() = %q, want it to contain /sedrot/vayakhel-pekudei-", got)
+	}
+}
+
+func TestHebrewDateEventURL(t *testing.T) {
+	ev := NewHebrewDateEvent(hdate.New(5786, hdate.Nisan, 15))
+	got := URL(ev)
+	for _, want := range []string{"hd=15", "hm=Nisan", "hy=5786", "h2g=1"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("URL() = %q, want it to contain %q", got, want)
+		}
+	}
+}
+
+// URL returns "" for events that implement CalEvent but not URLer, rather
+// than panicking on the type assertion.
+func TestURLHelperHandlesEventsWithoutURLs(t *testing.T) {
+	ev := UserEvent{}
+	if got := URL(ev); got != "" {
+		t.Errorf("URL() = %q, want empty", got)
 	}
 }
