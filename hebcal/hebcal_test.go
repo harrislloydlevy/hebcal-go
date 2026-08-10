@@ -145,6 +145,53 @@ func TestHebrewCalendarCandles(t *testing.T) {
 	})
 }
 
+// SuppressHavdalah drops every Havdalah event (Saturday night and the end of
+// yom tov) while leaving candle-lighting and everything else untouched, matching
+// @hebcal/core's behavior when havdalahMins===0.
+func TestHebrewCalendarSuppressHavdalah(t *testing.T) {
+	loc := zmanim.LookupCity("Chicago")
+	base := hebcal.CalOptions{
+		Start:          hdate.New(5782, hdate.Elul, 25),
+		End:            hdate.New(5783, hdate.Tishrei, 8),
+		CandleLighting: true,
+		Location:       loc,
+	}
+	full, err := hebcal.HebrewCalendar(&base)
+	assert.NoError(t, err)
+	optsSup := base
+	optsSup.SuppressHavdalah = true
+	suppressed, err := hebcal.HebrewCalendar(&optsSup)
+	assert.NoError(t, err)
+
+	isHavdalah := func(ev event.CalEvent) bool {
+		te, ok := ev.(hebcal.TimedEvent)
+		return ok && te.Desc == "Havdalah"
+	}
+	// Suppressing must remove at least one Havdalah, and leave no Havdalah behind.
+	var removed int
+	for _, ev := range full {
+		if isHavdalah(ev) {
+			removed++
+		}
+	}
+	assert.Greater(t, removed, 0, "test window should contain Havdalah events")
+	for _, ev := range suppressed {
+		assert.False(t, isHavdalah(ev), "Havdalah should have been suppressed")
+	}
+	// Everything that is not a Havdalah is kept, unchanged and in order.
+	assert.Equal(t, len(full)-removed, len(suppressed))
+	var j int
+	for _, ev := range full {
+		if isHavdalah(ev) {
+			continue
+		}
+		got := fmt.Sprintf("%s %s", hd2iso(suppressed[j].GetDate()), suppressed[j].Render("en"))
+		want := fmt.Sprintf("%s %s", hd2iso(ev.GetDate()), ev.Render("en"))
+		assert.Equal(t, want, got)
+		j++
+	}
+}
+
 func TestHebrewCalendarChanukahCandles(t *testing.T) {
 	loc := zmanim.LookupCity("Jerusalem")
 	opts := &hebcal.CalOptions{
