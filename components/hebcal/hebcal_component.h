@@ -16,6 +16,7 @@
 
 // Include the C library — arduino_compat.h makes it compile clean on ESP32
 #include "hebcal_all.h"
+#include "geonames.h"
 
 #include <string>
 #include <time.h>
@@ -42,7 +43,14 @@ class HebcalComponent : public PollingComponent {
     int year = time.year;
     int month = time.month;  // 1-12
     int day = time.day_of_month;
-    int utc_offset = time.timezone_offset() / 60;  // seconds → minutes
+
+    // Determine UTC offset: use geoname table if set, else ESPHome time
+    int utc_offset;
+    if (this->geoname_id_ != 0) {
+      utc_offset = heb_geonames_tz_offset(this->geoname_timezone_.c_str(), month);
+    } else {
+      utc_offset = time.timezone_offset() / 60;  // seconds → minutes
+    }
 
     ESP_LOGD(TAG, "Computing Hebrew calendar for %04d-%02d-%02d (UTC offset %d min)",
              year, month, day, utc_offset);
@@ -163,6 +171,24 @@ class HebcalComponent : public PollingComponent {
 
   // --- Configuration setters ---
   void set_time(time::RealTime *t) { time_ = t; }
+  void set_geoname_id(int id) {
+    geoname_id_ = id;
+    const heb_geoname_t *geo = heb_geonames_lookup(id);
+    if (geo) {
+      latitude_ = geo->latitude;
+      longitude_ = geo->longitude;
+      elevation_ = geo->elevation;
+      geoname_name_ = geo->name;
+      geoname_timezone_ = geo->timezone;
+      has_location_ = true;
+      ESP_LOGI(TAG, "Geoname ID %d → %s (%.4f, %.4f, tz=%s)",
+               id, geo->name, geo->latitude, geo->longitude, geo->timezone);
+    } else {
+      ESP_LOGE(TAG, "Geoname ID %d not found in built-in table (%d entries). "
+               "Set latitude/longitude manually or add the city to geonames.c.",
+               id, heb_geonames_count());
+    }
+  }
   void set_latitude(double lat) { latitude_ = lat; has_location_ = true; }
   void set_longitude(double lon) { longitude_ = lon; }
   void set_elevation(double elev) { elevation_ = elev; }
@@ -197,6 +223,11 @@ class HebcalComponent : public PollingComponent {
 
  protected:
   time::RealTime *time_{nullptr};
+
+  // Geoname lookup
+  int geoname_id_{0};
+  std::string geoname_name_{};
+  std::string geoname_timezone_{};
 
   // Location
   double latitude_{0};

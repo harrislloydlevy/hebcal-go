@@ -33,10 +33,12 @@ time:
 hebcal:
   id: my_hebcal
   time_id: sntp_time
-  # Location for zmanim (set these for candle-lighting/havdalah/sunrise/sunset)
-  latitude: 40.09789    # Lakewood, NJ
-  longitude: -74.21764
-  elevation: 0.0
+  # Option A: Use a GeoName ID (from geonames.org)
+  geoname_id: 5128581   # New York
+  # Option B: Use explicit lat/lon instead (comment out geoname_id above)
+  # latitude: 40.09789    # Lakewood, NJ
+  # longitude: -74.21764
+  # elevation: 0.0
   # Schedule
   israel: false         # true for Israel holiday schedule
   locale: "en"          # "en", "he", or "he-x-NoNikud"

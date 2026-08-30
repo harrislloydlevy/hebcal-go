@@ -98,8 +98,9 @@ hebcal:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `time_id` | ID | **Required** | ID of your time component (SNTP, etc.) |
-| `latitude` | float | — | Latitude for zmanim (north positive) |
-| `longitude` | float | — | Longitude for zmanim (east positive) |
+| `geoname_id` | int | — | GeoNames.org city ID. Resolves to lat/lon/tz from a built-in table of 93 cities. Alternative to setting lat/lon manually. |
+| `latitude` | float | — | Latitude for zmanim (north positive). Ignored if `geoname_id` is set. |
+| `longitude` | float | — | Longitude for zmanim (east positive). Ignored if `geoname_id` is set. |
 | `elevation` | float | 0 | Elevation in meters |
 | `israel` | bool | false | Use Israel holiday schedule |
 | `locale` | string | "en" | "en", "he", or "he-x-NoNikud" |
@@ -112,6 +113,23 @@ hebcal:
 | `sedrot` | bool | false | Include weekly Torah reading |
 | `molad` | bool | false | Include molad announcements |
 | `update_interval` | duration | 1h | How often to recompute |
+
+### Using `geoname_id`
+
+Instead of specifying `latitude` and `longitude`, you can provide a
+[GeoNames](https://www.geonames.org) city ID.  The component looks up the
+coordinates and timezone from a built-in table of 93 common Jewish community
+cities worldwide.
+
+```yaml
+hebcal:
+  time_id: sntp_time
+  geoname_id: 281184   # Jerusalem
+```
+
+If your city isn't in the built-in table, you can either:
+1. Add it to `src/geonames.c` (find the ID at geonames.org)
+2. Use explicit `latitude`/`longitude` instead
 
 ## Using in Lambdas
 

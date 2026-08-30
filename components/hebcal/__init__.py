@@ -28,6 +28,7 @@ CONF_NO_ROSH_CHODESH = "no_rosh_chodesh"
 CONF_NO_MODERN = "no_modern"
 CONF_NO_MINOR_FAST = "no_minor_fast"
 CONF_NO_SPECIAL_SHABBAT = "no_special_shabbat"
+CONF_GEONAME_ID = "geoname_id"
 
 # Text sensors exposed by the component
 CONF_HEBREW_DATE = "hebrew_date"
@@ -50,6 +51,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(HebcalComponent),
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTime),
+        cv.Optional(CONF_GEONAME_ID): cv.int_range(min=1),
         cv.Optional(CONF_LATITUDE): cv.float_,
         cv.Optional(CONF_LONGITUDE): cv.float_,
         cv.Optional(CONF_ELEVATION): cv.float_,
@@ -112,6 +114,9 @@ async def to_code(config):
 
     time_var = await cg.get_variable(config[CONF_TIME_ID])
     cg.add(var.set_time(time_var))
+
+    if CONF_GEONAME_ID in config:
+        cg.add(var.set_geoname_id(config[CONF_GEONAME_ID]))
 
     if CONF_LATITUDE in config:
         cg.add(var.set_latitude(config[CONF_LATITUDE]))
