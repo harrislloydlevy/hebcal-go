@@ -1,0 +1,17 @@
+# Build artifacts
+*.o
+hebcal-c
+tests/hebcal_tests
+tools/gen_tables
+
+# Note: src/tables_data.h and src/locale_data.h are auto-generated but
+# committed, because Arduino IDE users cannot run `make tables`.
+
+# IDE files
+.vscode/
+.pio/
+.travis.yml
+
+# OS files
+.DS_Store
+Thumbs.db

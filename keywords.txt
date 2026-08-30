@@ -1,0 +1,51 @@
+###################################
+# Syntax Coloring Map for Hebcal
+###################################
+
+###################################
+# Datatypes (KEYWORD1)
+###################################
+
+heb_hdate_t	KEYWORD1
+heb_gdate_t	KEYWORD1
+heb_zmanim_t	KEYWORD1
+heb_event_t	KEYWORD1
+heb_sedra_t	KEYWORD1
+heb_parsha_t	KEYWORD1
+heb_omer_t	KEYWORD1
+heb_molad_t	KEYWORD1
+heb_cal_options_t	KEYWORD1
+
+###################################
+# Methods and Functions (KEYWORD2)
+###################################
+
+heb_hdate_create	KEYWORD2
+heb_hdate_from_gregorian	KEYWORD2
+heb_hdate_from_rd	KEYWORD2
+heb_hdate_to_string	KEYWORD2
+heb_hdate_greg	KEYWORD2
+heb_hdate_weekday	KEYWORD2
+heb_hdate_is_leap_year	KEYWORD2
+heb_hdate_days_in_year	KEYWORD2
+heb_hdate_days_in_month	KEYWORD2
+heb_hdate_next	KEYWORD2
+heb_hdate_prev	KEYWORD2
+heb_hdate_month_name	KEYWORD2
+heb_holidays_for_year	KEYWORD2
+heb_holidays_for_date	KEYWORD2
+heb_hebrew_calendar	KEYWORD2
+heb_zmanim_new	KEYWORD2
+heb_zmanim_sunrise	KEYWORD2
+heb_zmanim_sunset	KEYWORD2
+heb_zmanim_chatzot	KEYWORD2
+heb_zmanim_alot_hashachar	KEYWORD2
+heb_zmanim_tzeit	KEYWORD2
+heb_sedra_new	KEYWORD2
+heb_sedra_lookup	KEYWORD2
+heb_omer_new	KEYWORD2
+heb_omer_today_is	KEYWORD2
+heb_anniversary_yahrzeit	KEYWORD2
+heb_anniversary_birthday	KEYWORD2
+heb_gematriya	KEYWORD2
+heb_molad_new	KEYWORD2
