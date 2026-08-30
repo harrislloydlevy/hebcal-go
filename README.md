@@ -1,6 +1,10 @@
 # hebcal-go
 
-[![Build Status](https://github.com/hebcal/hebcal-go/actions/workflows/go.yml/badge.svg)](https://github.com/hebcal/hebcal-go/actions/workflows/go.yml)
+This is a fork of the hebcal-go library to port to C and make useful as a component in arduino/esp32 and esphome builds.
+
+The real action is going on in a branch: https://github.com/harrislloydlevy/hebcal-go/tree/hebcal-c
+
+
 [![GoDoc](https://pkg.go.dev/badge/github.com/hebcal/hebcal-go?status.svg)](https://pkg.go.dev/github.com/hebcal/hebcal-go)
 
 Hebcal is a perpetual Jewish Calendar. This library converts between
