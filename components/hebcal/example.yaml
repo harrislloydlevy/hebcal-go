@@ -1,0 +1,101 @@
+# ============================================================================
+# Hebcal ESPHome component — Example configuration
+#
+# This YAML demonstrates using the hebcal-c external component to compute
+# Hebrew calendar data locally on the ESP32 — no HTTP API calls needed.
+#
+# The component exposes text sensors (Hebrew date, holiday, parasha, etc.)
+# and numeric sensors (sunrise/sunset/chatzot epoch seconds) that update
+# on the configured interval (default 1h).
+#
+# Prerequisites:
+#   - A working time source (SNTP) so the ESP32 knows the current date
+#   - Lat/lon if you want zmanim / candle-lighting times
+# ============================================================================
+
+# Reference the hebcal component from the local hebcal-c repo
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [ hebcal ]
+
+# Time source (required for the component to know the current date)
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/New_York"  # change to your timezone
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+
+# Hebcal component
+hebcal:
+  id: my_hebcal
+  time_id: sntp_time
+  # Location for zmanim (set these for candle-lighting/havdalah/sunrise/sunset)
+  latitude: 40.09789    # Lakewood, NJ
+  longitude: -74.21764
+  elevation: 0.0
+  # Schedule
+  israel: false         # true for Israel holiday schedule
+  locale: "en"          # "en", "he", or "he-x-NoNikud"
+  candle_lighting: true
+  candle_lighting_mins: 18
+  havdalah_mins: 0      # 0 = use havdalah_deg
+  havdalah_deg: 8.5
+  use_elevation: false
+  omer: true            # include Sefirat HaOmer
+  sedrot: true          # include Parashat HaShavua
+  update_interval: 1h   # recompute hourly
+
+  # Text sensors
+  hebrew_date:
+    name: "Hebrew Date"
+  parasha:
+    name: "Parashat HaShavua"
+  holiday:
+    name: "Holiday"
+  candles:
+    name: "Candle Lighting"
+  havdalah:
+    name: "Havdalah"
+  omer_text:
+    name: "Omer"
+  day_of_week:
+    name: "Day of Week"
+
+  # Numeric sensors (epoch seconds)
+  sunrise:
+    name: "Sunrise"
+  sunset:
+    name: "Sunset"
+  chatzot:
+    name: "Chatzot"
+
+# Optional: expose a text sensor that shows everything in one string
+text_sensor:
+  - platform: template
+    name: "Hebrew Date Summary"
+    id: hebrew_summary
+    icon: "mdi:calendar-star"
+    update_interval: 1h
+    lambda: |-
+      return {};
+
+# Logger
+logger:
+  level: DEBUG
+
+# WiFi
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# API
+api:
+  password: !secret api_key
+
+# OTA
+ota:
+  password: !secret ota_password
